@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOID SLOTS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ===== Title bar ===== -->
+    <header class="title-bar">
+        <h1 class="title">VOID SLOTS</h1>
+    </header>
+
+    <!-- ===== Main game area: 3x3 display + spin button ===== -->
+    <main class="game">
+
+        <!--
+            The display area: the 3x3 reel grid plus the bonus progress bar
+            on its right. The progress bar fills bottom-up as the player
+            accumulates losing spins; when full, clicking it activates the
+            INVERT bonus.
+        -->
+        <div class="display-area">
+
+            <!--
+                The 3x3 display.
+                Rendered as 9 cells in row-major order (row 0 = top, row 1 = payline, row 2 = bottom).
+                For each cell, data-reel is the column (0..2) and data-row is the row (0..2).
+                The middle row (data-row="1") is the single payline.
+                JS populates these cells dynamically.
+            -->
+            <div class="display" id="display">
+                <!--
+                    Each cell holds one persistent <img>. JS swaps its src on every
+                    render — that's cheaper than tearing down and rebuilding nodes.
+                    For blank stops, JS clears the src and CSS hides the image.
+                -->
+                <!-- Row 0 (top, non-payline) -->
+                <div class="cell" data-reel="0" data-row="0"><img alt=""></div>
+                <div class="cell" data-reel="1" data-row="0"><img alt=""></div>
+                <div class="cell" data-reel="2" data-row="0"><img alt=""></div>
+                <!-- Row 1 (middle, payline) -->
+                <div class="cell payline" data-reel="0" data-row="1"><img alt=""></div>
+                <div class="cell payline" data-reel="1" data-row="1"><img alt=""></div>
+                <div class="cell payline" data-reel="2" data-row="1"><img alt=""></div>
+                <!-- Row 2 (bottom, non-payline) -->
+                <div class="cell" data-reel="0" data-row="2"><img alt=""></div>
+                <div class="cell" data-reel="1" data-row="2"><img alt=""></div>
+                <div class="cell" data-reel="2" data-row="2"><img alt=""></div>
+
+                <!--
+                    Win-amount overlay: centered over the 3x3 grid. JS sets
+                    the dollar amount and the paying symbol's color, then
+                    triggers a brief fade-in → hold → fade-out animation.
+                -->
+                <div class="win-amount-overlay" id="win-amount-overlay"></div>
+            </div>
+
+            <!--
+                Bonus progress bar: a solid fill that grows bottom-up as the
+                player accumulates losing spins. JS sets the .progress-fill
+                height as a percentage (lossCount / BONUS_TRIGGER_LOSSES).
+                When the bar is full, JS adds .ready to the bar — which makes
+                the whole element clickable, adds a pulsing white halo, and
+                fades in the "INVERT" label inside the fill to signal that
+                the bar is now a button.
+            -->
+            <div class="progress-bar" id="progress-bar" role="button" aria-label="Bonus progress" tabindex="0">
+                <div class="progress-fill" id="progress-fill"></div>
+                <span class="progress-label">INVERT</span>
+            </div>
+
+        </div>
+
+        <!-- Win readout — populated after each spin -->
+        <div class="win-display" id="win-display">&nbsp;</div>
+
+        <!-- Spin button. Bet is fixed at $1.00 per the design doc. -->
+        <button class="spin-button" id="spin-button" type="button">SPIN&nbsp;&nbsp;$1.00</button>
+
+    </main>
+
+    <!-- ===== Credits banner ===== -->
+    <footer class="credits-bar">
+        <span class="credits-label">CREDITS</span>
+        <span class="credits-value" id="credits-value">$0.00</span>
+        <button class="add-credits-button" id="add-credits-button" type="button">+ $100</button>
+    </footer>
+
+    <!--
+        Menu button — fixed to the top-right corner. Opens the sidebar.
+        Lives outside .game/.title-bar so it isn't affected by their layout.
+    -->
+    <button class="menu-button" id="menu-button" type="button" aria-label="Open menu">MENU</button>
+
+    <!--
+        Sidebar — slide-over from the right. Off-screen by default
+        (transform: translateX(100%)); the .open class slides it in.
+        The sidebar overlays the game without a blocking backdrop, so the
+        game underneath stays interactive. Inner views toggle visibility
+        rather than navigating routes: the menu list and the pay table
+        view live side-by-side in the DOM and JS toggles their [hidden].
+    -->
+    <aside class="sidebar" id="sidebar" aria-hidden="true">
+        <header class="sidebar-header">
+            <button class="sidebar-back" id="sidebar-back" type="button" aria-label="Back" hidden>&#8249;&nbsp;BACK</button>
+            <h2 class="sidebar-title" id="sidebar-title">MENU</h2>
+            <button class="sidebar-close" id="sidebar-close" type="button" aria-label="Close">&#10005;</button>
+        </header>
+
+        <div class="sidebar-body">
+
+            <!-- Top-level menu list. -->
+            <nav class="sidebar-menu" id="sidebar-menu">
+                <button class="sidebar-menu-item" type="button" data-view="paytable">PAY TABLE</button>
+
+                <!--
+                    Audio toggles. Label + state-indicator button in one row.
+                    The buttons render "ON" or "OFF" based on the .on class;
+                    JS flips the class and the underlying mute state in tandem.
+                -->
+                <div class="sidebar-toggle-row">
+                    <span class="sidebar-toggle-label">MUSIC</span>
+                    <button class="sidebar-toggle on" type="button" id="toggle-bgm" aria-pressed="true">ON</button>
+                </div>
+                <div class="sidebar-toggle-row">
+                    <span class="sidebar-toggle-label">SFX</span>
+                    <button class="sidebar-toggle on" type="button" id="toggle-sfx" aria-pressed="true">ON</button>
+                </div>
+            </nav>
+
+            <!--
+                Pay-table sub-view. Hidden until the player taps "PAY TABLE".
+                Rows are built by JS at view-open time from the SYMBOLS table
+                in game.js, so retuning a payout in one place updates the
+                in-game scoring and this readout at the same time.
+            -->
+            <section class="sidebar-view" id="sidebar-paytable" hidden>
+                <h3 class="paytable-section-heading">3 OF A KIND</h3>
+                <div class="paytable-rows" id="paytable-3oak-rows"></div>
+
+                <h3 class="paytable-section-heading">2 OF A KIND</h3>
+                <div class="paytable-rows" id="paytable-2oak-rows"></div>
+
+                <h3 class="paytable-section-heading">WILD</h3>
+                <div class="paytable-rows" id="paytable-wild-rows"></div>
+            </section>
+
+        </div>
+    </aside>
+
+    <!--
+        Howler.js: cross-browser Web Audio wrapper that handles sound
+        pooling, fades, looping music, and mobile autoplay unlocking.
+        Loaded from CDN (pinned version). sounds.js depends on it and
+        must load AFTER, and game.js depends on sounds.js's globals
+        (playSound / setMusic etc) and must load LAST.
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <script src="sounds.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
