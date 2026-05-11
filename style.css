@@ -451,6 +451,39 @@ body {
 }
 
 
+/* ---- Attribution -------------------------------------------------------
+   Quiet credit line beneath the spin button. Pulled tighter to the button
+   than the .game flex gap would otherwise allow via negative margin-top,
+   and kept low-contrast so it doesn't compete with the game proper. */
+.attribution {
+    margin-top: 0px;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: #555555;
+    text-align: center;
+}
+
+/* Consecutive attribution lines: tight stacking, just enough breathing
+   room to separate the SFX and BGM credits. The negative margin-top on
+   .attribution above only applies to the first line (since this rule
+   wins by adjacent-sibling specificity for subsequent lines). */
+.attribution + .attribution {
+    margin-top: 2px;
+}
+
+.attribution a {
+    color: #888888;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+    transition: color 0.15s ease-out;
+}
+
+.attribution a:hover {
+    color: #cccccc;
+    text-decoration-color: rgba(255, 255, 255, 0.5);
+}
+
+
 /* ---- Credits banner ----------------------------------------------------- */
 
 .credits-bar {
