@@ -339,7 +339,7 @@ function activateBonus() {
 /* =========================================================================
    Sidebar (menu + pay table)
    -------------------------------------------------------------------------
-   The sidebar slides over from the right when the player clicks MENU.
+   The sidebar slides over from the left when the player clicks MENU.
    It overlays the game but does NOT block clicks beneath it — the game
    stays interactive while the menu is open.
    The sidebar holds a two-pane interior: a top-level menu list, and the
